@@ -148,6 +148,19 @@ def save_session(entry):
         # add both lists value
         entry_int = [int(i) for i in entry["work_time"].split(":")]
         new_work_time_int = [d + e for d, e in zip(data_int, entry_int)]
+
+        # Check if seconds are bigger than 59 sec, and then add it to minutes
+        if new_work_time_int[2] >= 59:
+            x = divmod(new_work_time_int[2], 60)
+            new_work_time_int[1] += x[0]
+            new_work_time_int[2] = x[1]
+
+        # Chcek if minutes are bigger than 59, and than add it to hours
+        if new_work_time_int[1] >= 59:
+            x = divmod(new_work_time_int[1], 60)
+            new_work_time_int[0] += x[0]
+            new_work_time_int[1] = x[1]
+
         # change last entry data worktime to update value
         new_work_time = ":".join([f"{num:02d}" for num in new_work_time_int])
         data[-1]["work_time"] = new_work_time
