@@ -51,9 +51,6 @@ target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
 def countdown_target():
     global target_timer_id, target_timer_text, target_sec, target_min, target_h
 
-    if target_sec == 0 and target_min == 0 and target_h == 0:
-        print("Your target is complet!")
-
     if target_sec == 0:
         target_sec = 59
         if target_min == 0:
@@ -68,6 +65,18 @@ def countdown_target():
     target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
     target_timer_id = target_timer_label.after(1000, countdown_target)
     target_timer_label.configure(text=target_timer_text)
+
+    if target_sec == 0 and target_min == 0 and target_h == 0:
+        stop_countdown_target()
+
+
+# stop countdown logic
+def stop_countdown_target():
+    global target_timer_id
+    if target_timer_id is not None:
+        target_timer_label.after_cancel(target_timer_id)
+        target_timer_id = None
+    print("Your target is complet!")
 
 
 # appends new settings after hitting save button
@@ -125,6 +134,7 @@ def stop_timer():
         timer_id = None
 
 
+# reset timer logic
 def reset_timer():
     global sec, min, h, timer_text
     sec, min, h = 0, 0, 0
