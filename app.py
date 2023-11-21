@@ -30,21 +30,29 @@ def read_settings():
         data = json.load(file)
         work_time_setting = data[0]["work_time_target"]
         break_time_setting = data[0]["break_time"]
-        break_time_cycle = data[0]["break_time_cycle"]
+        pomodoro = data[0]["pomodoro?"]
         afk_tracker_setting = data[0]["afk_tracker"]
         return (
             work_time_setting,
             break_time_setting,
-            break_time_cycle,
+            pomodoro,
             afk_tracker_setting,
         )
 
 
 # triggers read settings to set config on start
 settings = read_settings()
+
+# target time timer variables declaration
 target_sec, target_min, target_h = settings[0][2], settings[0][1], settings[0][0]
+break_time_sec, break_time_min, break_time_h = (
+    settings[1][2],
+    settings[1][1],
+    settings[1][0],
+)
 target_timer_id = None
 target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
+break_time_text = f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
 
 
 # counts down to 0 from target_time
@@ -83,7 +91,7 @@ def stop_countdown_target():
 def save_settings():
     work_time = work_time_input_status.get()
     break_time = break_time_input_status.get()
-    break_time_cycle = check_state_cycle_breaktime.get() == "true"
+    pomodoro = check_pomodoro.get() == "true"
     afk_time_cycle = check_state_afk_tracker.get() == "true"
 
     with open(config_json_file, "r") as file:
@@ -91,7 +99,7 @@ def save_settings():
 
         data[0]["work_time_target"] = [int(i) for i in work_time.split(":")]
         data[0]["break_time"] = [int(i) for i in break_time.split(":")]
-        data[0]["break_time_cycle"] = break_time_cycle
+        data[0]["pomodoro?"] = pomodoro
         data[0]["afk_tracker"] = afk_time_cycle
 
     with open(config_json_file, "w") as outfile:
@@ -194,8 +202,8 @@ def end_session():
 
 
 def checkbox_test():
-    print("cycle is: " + check_state_afk_tracker.get())
-    print("afk is: " + check_state_cycle_breaktime.get())
+    print("pomodoro: " + check_pomodoro.get())
+    print("afk: " + check_state_afk_tracker.get())
 
 
 # menu tabs logic
@@ -205,6 +213,12 @@ def show_tab(tab):
         frame.pack_forget()
     # Show the selected tab
     tabs[tab].pack(fill="both", expand=0)
+
+
+# Setting checkboxes in the settings to the initial values read from config.json.
+def set_initial_checkbox_state():
+    check_pomodoro.set(str(settings[2]).lower())
+    check_state_afk_tracker.set(str(settings[3]).lower())
 
 
 root = ctk.CTk()
@@ -233,12 +247,12 @@ work_time_input_status = ctk.StringVar(value=target_timer_text)
 settings_input_work_time = create_settings_input(frame3, work_time_input_status, 3)
 
 settings_label_break_time = create_settings_label(frame3, "Set your break time", 4)
-break_time_input_status = ctk.StringVar(value="00:00:00")
+break_time_input_status = ctk.StringVar(value=break_time_text)
 settings_input_break_time = create_settings_input(frame3, break_time_input_status, 5)
 
-check_state_cycle_breaktime = ctk.StringVar(value="false")
+check_pomodoro = ctk.StringVar(value="false")
 settings_checkbox_cycle_breaktime = create_settings_checkbox(
-    frame3, "is break cycle?", check_state_cycle_breaktime, checkbox_test, 6
+    frame3, "🍅 pomodoro? 🍅", check_pomodoro, checkbox_test, 6
 )
 
 check_state_afk_tracker = ctk.StringVar(value="false")
@@ -268,5 +282,7 @@ for tab_name, tab_frame in tabs.items():
     menu_bar.add_command(label=tab_name, command=lambda t=tab_name: show_tab(t))
 
 root.config(menu=menu_bar)
+
+set_initial_checkbox_state()
 
 root.mainloop()
