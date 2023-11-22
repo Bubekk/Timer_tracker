@@ -54,7 +54,9 @@ break_time_sec, break_time_min, break_time_h = (
 )
 target_timer_id = None
 target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
+break_time_timer_id = None
 break_time_text = f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
+break_time_timer_id = None
 
 
 # counts down to 0 from target_time
@@ -86,10 +88,43 @@ def stop_countdown_target():
     if target_timer_id is not None:
         target_timer_label.after_cancel(target_timer_id)
         target_timer_id = None
-    print("Your target is complet!")
+    print("Your target is complete!")
 
 
-# appends new settings after hitting save button
+# counts down to 0 from break_time
+def countdown_break_time():
+    global break_time_timer_id, break_time_text, break_time_sec, break_time_min, break_time_h
+
+    if break_time_sec == 0:
+        break_time_sec = 59
+        if break_time_min == 0:
+            break_time_min = 59
+            if break_time_h != 0:
+                break_time_h -= 1
+        else:
+            break_time_min -= 1
+    else:
+        break_time_sec -= 1
+
+    break_time_text = f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
+    break_time_timer_id = break_time_label.after(1000, countdown_break_time)
+    break_time_label.configure(text=break_time_text)
+
+    if break_time_sec == 0 and break_time_min == 0 and break_time_h == 0:
+        stop_countdown_break_time()
+        start_timer()
+
+
+# stop countdown logic
+def stop_countdown_break_time():
+    global break_time_timer_id
+    if break_time_timer_id is not None:
+        break_time_label.after_cancel(break_time_timer_id)
+        break_time_timer_id = None
+    print("Your break is over!")
+
+
+# appends new settings after hitting save button, and sets work_time_target and break_time to proper values
 def save_settings():
     global target_timer_text, target_sec, target_min, target_h, break_time_h, break_time_min, break_time_sec
 
@@ -118,9 +153,17 @@ def save_settings():
         break_time_h, break_time_min, break_time_sec = 0, 5, 0
         target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
         target_timer_label.configure(text=target_timer_text)
+        break_time_text = (
+            f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
+        )
+        break_time_label.configure(text=break_time_text)
     else:
         target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
         target_timer_label.configure(text=target_timer_text)
+        break_time_text = (
+            f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
+        )
+        break_time_label.configure(text=break_time_text)
 
 
 # overall timer logic
@@ -146,7 +189,7 @@ def timer():
 def start_timer():
     global timer_id
     if timer_id is None:
-        stop_timer()
+        break_time_start()
         timer()
         countdown_target()
 
@@ -156,6 +199,17 @@ def stop_timer():
     global timer_id
     if timer_id is not None:
         timer_label.after_cancel(timer_id)
+        target_timer_label.after_cancel(target_timer_id)
+        timer_id = None
+
+
+# break time start logic
+def break_time_start():
+    global timer_id
+    if timer_id is not None:
+        timer_label.after_cancel(timer_id)
+        target_timer_label.after_cancel(target_timer_id)
+        countdown_break_time()
         timer_id = None
 
 
@@ -171,8 +225,6 @@ def reset_timer():
 def save_session(entry):
     with open(session_json_file, "r") as file:
         data = json.load(file)
-
-    print(data[-1]["date"])
 
     # if true append new entry, else change data work time to int value
     if data[-1]["date"] != entry["date"]:
@@ -212,12 +264,13 @@ def end_session():
         "month": time.localtime().tm_mon,
         "day": time.localtime().tm_mday,
     }
-    session = {"date": cur_date, "work_time": timer_text}
+    session = {"date": cur_date, "work_time": timer_text, "break_time": break_time_text}
     stop_timer()
     save_session(session)
     reset_timer()
 
 
+# Check if pomodoro setting is true, if true dynamically sets state of setting inputs to disabled else to normal.
 def checkbox_pomodoro_influence():
     chceckbox_state = check_pomodoro.get()
     if chceckbox_state == "true":
@@ -255,10 +308,14 @@ def set_initial_settings():
         target_h, target_min, target_sec = 0, 25, 0
         target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
         target_timer_label.configure(text=target_timer_text)
+        break_time_h, break_time_min, break_time_sec = 0, 5, 0
+        break_time_text = (
+            f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
+        )
+        break_time_label.configure(text=break_time_text)
     else:
         settings_input_work_time.configure(state="normal", text_color="#fff")
         settings_input_break_time.configure(state="normal", text_color="#fff")
-        print(check_pomodoro)
 
 
 root = ctk.CTk()
@@ -273,11 +330,12 @@ frame3 = ctk.CTkFrame(root)
 # Content for timer tab
 timer_label = create_timer_label(frame1, timer_text)
 timer_button_start = create_timer_button(frame1, "start", start_timer, 1)
-timer_button_break = create_timer_button(frame1, "break", stop_timer, 2)
+timer_button_break = create_timer_button(frame1, "break", break_time_start, 2)
 button_end = create_timer_button_end(frame1, end_session)
 
 # Content for target timer tab
 target_timer_label = create_target_timer_label(frame2, target_timer_text, 0)
+break_time_label = create_target_timer_label(frame2, break_time_text, 1)
 
 # Content for settings tab
 settings_label_work_time_target = create_settings_label(
