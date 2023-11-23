@@ -42,10 +42,9 @@ def read_settings():
 
 # triggers read settings to set config on start
 settings = read_settings()
-print(settings)
 
 
-# target time timer variables declaration
+# target time, break time timer variables declaration
 target_sec, target_min, target_h = settings[0][2], settings[0][1], settings[0][0]
 break_time_sec, break_time_min, break_time_h = (
     settings[1][2],
@@ -54,14 +53,16 @@ break_time_sec, break_time_min, break_time_h = (
 )
 target_timer_id = None
 target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
+target_complete = False
 break_time_timer_id = None
 break_time_text = f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
 break_time_timer_id = None
+how_many_breaks = 0
 
 
 # counts down to 0 from target_time
 def countdown_target():
-    global target_timer_id, target_timer_text, target_sec, target_min, target_h
+    global target_timer_id, target_timer_text, target_sec, target_min, target_h, target_complete
 
     if target_sec == 0:
         target_sec = 59
@@ -79,7 +80,9 @@ def countdown_target():
     target_timer_label.configure(text=target_timer_text)
 
     if target_sec == 0 and target_min == 0 and target_h == 0:
+        target_complete = True
         stop_countdown_target()
+        target_h, target_min, target_sec = 0, 0, 0
 
 
 # stop countdown logic
@@ -93,7 +96,7 @@ def stop_countdown_target():
 
 # counts down to 0 from break_time
 def countdown_break_time():
-    global break_time_timer_id, break_time_text, break_time_sec, break_time_min, break_time_h
+    global break_time_timer_id, break_time_text, break_time_sec, break_time_min, break_time_h, how_many_breaks
 
     if break_time_sec == 0:
         break_time_sec = 59
@@ -112,7 +115,14 @@ def countdown_break_time():
 
     if break_time_sec == 0 and break_time_min == 0 and break_time_h == 0:
         stop_countdown_break_time()
+        how_many_breaks += 1
+        whole_break_time()
         start_timer()
+        break_time = break_time_input_status.get()
+        break_time_label.configure(break_time)
+        break_time_h, break_time_min, break_time_sec = [
+            int(i) for i in break_time.split(":")
+        ]
 
 
 # stop countdown logic
@@ -187,30 +197,54 @@ def timer():
 
 # start timer logic
 def start_timer():
-    global timer_id
+    global timer_id, target_complete
     if timer_id is None:
         break_time_start()
         timer()
-        countdown_target()
+        if target_complete is False:
+            countdown_target()
 
 
 # stop timer logic
 def stop_timer():
-    global timer_id
+    global timer_id, target_timer_id
     if timer_id is not None:
         timer_label.after_cancel(timer_id)
-        target_timer_label.after_cancel(target_timer_id)
         timer_id = None
+    if target_timer_id is not None:
+        target_timer_label.after_cancel(target_timer_id)
+        target_timer_id = None
 
 
 # break time start logic
 def break_time_start():
-    global timer_id
+    global timer_id, target_timer_id
     if timer_id is not None:
         timer_label.after_cancel(timer_id)
-        target_timer_label.after_cancel(target_timer_id)
+        if target_timer_id is not None:
+            target_timer_label.after_cancel(target_timer_id)
+            target_timer_id = None
+        else:
+            pass
         countdown_break_time()
         timer_id = None
+
+
+def whole_break_time():
+    global how_many_breaks, total_break_time_formatted
+
+    h_to_sec = settings[1][0] * 3600
+    min_to_sec = settings[1][1] * 60
+    total_seconds = settings[1][2] + h_to_sec + min_to_sec
+    total_break_time_seconds = how_many_breaks * total_seconds
+
+    hours = total_break_time_seconds // 3600
+    minutes = (total_break_time_seconds % 3600) // 60
+    seconds = total_break_time_seconds % 60
+
+    total_break_time_formatted = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    return total_break_time_formatted
 
 
 # reset timer logic
@@ -231,10 +265,17 @@ def save_session(entry):
         data.append(entry)
     else:
         # change entry work time to int value
-        data_int = [int(i) for i in data[-1]["work_time"].split(":")]
+        data_int_work_time = [int(i) for i in data[-1]["work_time"].split(":")]
+        data_int_break_time = [int(i) for i in data[-1]["break_time"].split(":")]
         # add both lists value
-        entry_int = [int(i) for i in entry["work_time"].split(":")]
-        new_work_time_int = [d + e for d, e in zip(data_int, entry_int)]
+        entry_int_work_time = [int(i) for i in entry["work_time"].split(":")]
+        entry_int_break_time = [int(i) for i in entry["break_time"].split(":")]
+        new_work_time_int = [
+            d + e for d, e in zip(data_int_work_time, entry_int_work_time)
+        ]
+        new_break_time_int = [
+            d + e for d, e in zip(data_int_break_time, entry_int_break_time)
+        ]
 
         # Check if seconds are bigger than 59 sec, and then add it to minutes
         if new_work_time_int[2] >= 59:
@@ -248,9 +289,22 @@ def save_session(entry):
             new_work_time_int[0] += x[0]
             new_work_time_int[1] = x[1]
 
+        if new_break_time_int[2] >= 59:
+            x = divmod(new_break_time_int[2], 60)
+            new_break_time_int[1] += x[0]
+            new_break_time_int[2] = x[1]
+
+        if new_break_time_int[1] >= 59:
+            x = divmod(new_break_time_int[1], 60)
+            new_break_time_int[0] += x[0]
+            new_break_time_int[1] = x[1]
+
         # change last entry data worktime to update value
         new_work_time = ":".join([f"{num:02d}" for num in new_work_time_int])
         data[-1]["work_time"] = new_work_time
+
+        new_break_time = ":".join([f"{num:02d}" for num in new_break_time_int])
+        data[-1]["break_time"] = new_break_time
 
     with open(session_json_file, "w") as outfile:
         json.dump(data, outfile, indent=4)
@@ -258,13 +312,17 @@ def save_session(entry):
 
 # end session logic. Stops timer, get session data to save in json
 def end_session():
-    global timer_text
+    global timer_text, total_break_time_formatted
     cur_date = {
         "year": time.localtime().tm_year,
         "month": time.localtime().tm_mon,
         "day": time.localtime().tm_mday,
     }
-    session = {"date": cur_date, "work_time": timer_text, "break_time": break_time_text}
+    session = {
+        "date": cur_date,
+        "work_time": timer_text,
+        "break_time": total_break_time_formatted,
+    }
     stop_timer()
     save_session(session)
     reset_timer()
@@ -283,7 +341,6 @@ def checkbox_pomodoro_influence():
 
 def checkbox_test():
     checkbox_state = check_state_afk_tracker.get()
-    print(checkbox_state)
 
 
 # menu tabs logic
