@@ -20,8 +20,13 @@ from target_timer import create_target_timer_label
 sec, min, h = 0, 0, 0
 timer_id = None
 timer_text = f"{h:02d}:{min:02d}:{sec:02d}"
+pomodoro = False
 session_json_file = "./session/session.json"
 config_json_file = "./config/config.json"
+pomodoro_h, pomodoro_min, pomodoro_sec = 0, 0, 10
+pomodoro_break_h, pomodoro_break_min, pomodoro_break_sec = 0, 0, 5
+pomodoro_cycles = 0
+work_break_bool = True
 
 
 # loads config.json and set some variables about user settings on launch
@@ -56,13 +61,18 @@ target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
 target_complete = False
 break_time_timer_id = None
 break_time_text = f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
-break_time_timer_id = None
+# break_time_timer_id = None
 how_many_breaks = 0
 
 
 # counts down to 0 from target_time
-def countdown_target():
-    global target_timer_id, target_timer_text, target_sec, target_min, target_h, target_complete
+def countdown_target(time=None):
+    global target_timer_id, target_timer_text, target_sec, target_min, target_h, target_complete, work_break_bool
+
+    if time is None:
+        time = (target_h, target_min, target_sec)
+
+    target_h, target_min, target_sec = time
 
     if target_sec == 0:
         target_sec = 59
@@ -81,8 +91,10 @@ def countdown_target():
 
     if target_sec == 0 and target_min == 0 and target_h == 0:
         target_complete = True
+        work_break_bool = False
         stop_countdown_target()
         target_h, target_min, target_sec = 0, 0, 0
+        check_work_break_bool()
 
 
 # stop countdown logic
@@ -95,8 +107,13 @@ def stop_countdown_target():
 
 
 # counts down to 0 from break_time
-def countdown_break_time():
-    global break_time_timer_id, break_time_text, break_time_sec, break_time_min, break_time_h, how_many_breaks
+def countdown_break_time(time=None):
+    global break_time_timer_id, break_time_text, break_time_sec, break_time_min, break_time_h, how_many_breaks, work_break_bool
+
+    if time is None:
+        time = (break_time_h, break_time_min, break_time_sec)
+
+    break_time_h, break_time_min, break_time_sec = time
 
     if break_time_sec == 0:
         break_time_sec = 59
@@ -114,6 +131,7 @@ def countdown_break_time():
     break_time_label.configure(text=break_time_text)
 
     if break_time_sec == 0 and break_time_min == 0 and break_time_h == 0:
+        work_break_bool = True
         stop_countdown_break_time()
         how_many_breaks += 1
         whole_break_time()
@@ -123,6 +141,7 @@ def countdown_break_time():
         break_time_h, break_time_min, break_time_sec = [
             int(i) for i in break_time.split(":")
         ]
+        check_work_break_bool()
 
 
 # stop countdown logic
@@ -132,6 +151,17 @@ def stop_countdown_break_time():
         break_time_label.after_cancel(break_time_timer_id)
         break_time_timer_id = None
     print("Your break is over!")
+
+
+def check_work_break_bool():
+    global work_break_bool
+
+    if work_break_bool:
+        print("Przerwa się skończyła. Praca rozpocznie się ponownie.")
+        pomodoro_work_cycle()
+    else:
+        print("Skończył się czas pracy. Przerwa rozpocznie się teraz.")
+        pomodoro_work_cycle()
 
 
 # appends new settings after hitting save button, and sets work_time_target and break_time to proper values
@@ -159,8 +189,12 @@ def save_settings():
         json.dump(data, outfile, indent=4)
 
     if pomodoro:
-        target_h, target_min, target_sec = 0, 25, 0
-        break_time_h, break_time_min, break_time_sec = 0, 5, 0
+        target_h, target_min, target_sec = pomodoro_h, pomodoro_min, pomodoro_sec
+        break_time_h, break_time_min, break_time_sec = (
+            pomodoro_break_h,
+            pomodoro_break_min,
+            pomodoro_break_sec,
+        )
         target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
         target_timer_label.configure(text=target_timer_text)
         break_time_text = (
@@ -197,12 +231,16 @@ def timer():
 
 # start timer logic
 def start_timer():
-    global timer_id, target_complete
-    if timer_id is None:
-        break_time_start()
-        timer()
-        if target_complete is False:
-            countdown_target()
+    global timer_id, target_complete, pomodoro
+
+    if pomodoro:
+        pomodoro_work_cycle()
+    else:
+        if timer_id is None:
+            break_time_start()
+            timer()
+            if target_complete is False:
+                countdown_target()
 
 
 # stop timer logic
@@ -217,7 +255,7 @@ def stop_timer():
 
 
 # break time start logic
-def break_time_start():
+def break_time_start(time):
     global timer_id, target_timer_id
     if timer_id is not None:
         timer_label.after_cancel(timer_id)
@@ -226,10 +264,11 @@ def break_time_start():
             target_timer_id = None
         else:
             pass
-        countdown_break_time()
+        countdown_break_time(time)
         timer_id = None
 
 
+# converts time of every break in session
 def whole_break_time():
     global how_many_breaks, total_break_time_formatted
 
@@ -328,19 +367,49 @@ def end_session():
     reset_timer()
 
 
-# Check if pomodoro setting is true, if true dynamically sets state of setting inputs to disabled else to normal.
+# Check if pomodoro setting is true, if true dynamically sets stateq of setting inputs to disabled else to normal.
 def checkbox_pomodoro_influence():
+    global pomodoro
     chceckbox_state = check_pomodoro.get()
     if chceckbox_state == "true":
+        pomodoro = True
         settings_input_work_time.configure(state="disabled", text_color="#821514")
         settings_input_break_time.configure(state="disabled", text_color="#821514")
     else:
+        pomodoro = False
         settings_input_work_time.configure(state="normal", text_color="#fff")
         settings_input_break_time.configure(state="normal", text_color="#fff")
 
 
+def pomodoro_work_cycle():
+    global pomodoro_cycles, pomodoro_break_h, pomodoro_break_min, pomodoro_break_sec, pomodoro_h, pomodoro_min, pomodoro_sec, work_break_bool
+
+    if pomodoro:
+        pomodoro_cycles += 1
+
+    if work_break_bool == False:
+        if pomodoro_cycles % 4 == 0:
+            break_time_start(
+                (pomodoro_break_h * 3, pomodoro_break_min * 3, pomodoro_break_sec * 3)
+            )
+            print("długa przerwa")
+        else:
+            break_time_start((pomodoro_break_h, pomodoro_break_min, pomodoro_break_sec))
+            print("krótka przerwa")
+
+    else:
+        if pomodoro_cycles % 4 != 0:
+            countdown_target((pomodoro_h, pomodoro_min, pomodoro_sec))
+            timer()
+        else:
+            pass
+
+
+# temporary function for checkboxes
 def checkbox_test():
+    global pomodoro
     checkbox_state = check_state_afk_tracker.get()
+    print(pomodoro)
 
 
 # menu tabs logic
@@ -354,23 +423,30 @@ def show_tab(tab):
 
 # Setting variables to the initial values read from config.json.
 def set_initial_settings():
+    global pomodoro
     check_pomodoro.set(str(settings[2]).lower())
     check_state_afk_tracker.set(str(settings[3]).lower())
     work_time = work_time_input_status.get()
     target_h, target_min, target_sec = [int(i) for i in work_time.split(":")]
 
     if settings[2] == True:
+        pomodoro = True
         settings_input_work_time.configure(state="disabled", text_color="#821514")
         settings_input_break_time.configure(state="disabled", text_color="#821514")
-        target_h, target_min, target_sec = 0, 25, 0
+        target_h, target_min, target_sec = pomodoro_h, pomodoro_min, pomodoro_sec
         target_timer_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
         target_timer_label.configure(text=target_timer_text)
-        break_time_h, break_time_min, break_time_sec = 0, 5, 0
+        break_time_h, break_time_min, break_time_sec = (
+            pomodoro_break_h,
+            pomodoro_break_min,
+            pomodoro_break_sec,
+        )
         break_time_text = (
             f"{break_time_h:02d}:{break_time_min:02d}:{break_time_sec:02d}"
         )
         break_time_label.configure(text=break_time_text)
     else:
+        pomodoro = False
         settings_input_work_time.configure(state="normal", text_color="#fff")
         settings_input_break_time.configure(state="normal", text_color="#fff")
 
