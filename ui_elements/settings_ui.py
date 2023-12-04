@@ -18,8 +18,8 @@ def settings_create_checkbox(parent_frame, text, variable, command, row):
         parent_frame,
         text=text,
         variable=variable,
-        onvalue="true",
-        offvalue="false",
+        onvalue=True,
+        offvalue=False,
         command=command,
     )
     checkbox.grid(row=row)

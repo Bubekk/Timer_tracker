@@ -3,10 +3,12 @@ timer_id = None
 timer_text = f"{h:02d}:{min:02d}:{sec:02d}"
 
 
+# Temporary test function!
 def timer_button_test():
     print("timer button works")
 
 
+# If timer id is None it triggers timer()
 def start_timer(label):
     if timer_id is None:
         timer(label)
@@ -14,6 +16,7 @@ def start_timer(label):
         print("nie wiem coś tutej")
 
 
+# convert time into proper format and modifies main timer label
 def timer(label):
     global timer_text, sec, min, h, timer_id
     if sec == 59:
