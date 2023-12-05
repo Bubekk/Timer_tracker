@@ -36,6 +36,8 @@ def save_settings(time_input, break_input, pomodoro, target_label, break_label):
     new_break_time_config = break_input
     new_pomodoro_config = pomodoro
 
+    # NEED TO PROTECT FUNCTION IF FILE DON'T EXISTS!!!
+
     with open(settings_file_path, "r") as file:
         data = json.load(file)
 

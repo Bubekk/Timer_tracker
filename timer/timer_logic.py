@@ -1,3 +1,5 @@
+from .target_time_logic import target_time_countdown
+
 h, min, sec = 0, 0, 0
 timer_id = None
 timer_text = f"{h:02d}:{min:02d}:{sec:02d}"
@@ -9,9 +11,10 @@ def timer_button_test():
 
 
 # If timer id is None it triggers timer()
-def start_timer(label):
+def start_timer(label, target_label):
     if timer_id is None:
         timer(label)
+        target_time_countdown(target_label)
     else:
         print("nie wiem coś tutej")
 
