@@ -1,14 +1,29 @@
-from settings.settings_logic import target_time_config
+import json
 
-target_h, target_min, target_sec = (
-    target_time_config[0],
-    target_time_config[1],
-    target_time_config[2],
-)
+settings_file_path = "./data/config/config.json"
+
+target_h, target_min, target_sec = (0, 0, 0)
 target_time_id = None
 target_time_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
 
 
+# Refreshes variables to work dynamically with settings options
+def refresh_target_time_variables():
+    global target_h, target_min, target_sec, target_time_text
+
+    with open(settings_file_path, "r") as file:
+        data = json.load(file)
+
+    target_time_config = data[0]["target_time"]
+    target_h, target_min, target_sec = (
+        target_time_config[0],
+        target_time_config[1],
+        target_time_config[2],
+    )
+    target_time_text = f"{target_h:02d}:{target_min:02d}:{target_sec:02d}"
+
+
+#  Stops counting down from target time
 def stop_countdown_target(label):
     global target_time_id
 
@@ -18,6 +33,7 @@ def stop_countdown_target(label):
     print("Your target is complete!")
 
 
+# Starts counting down from target time
 def target_time_countdown(label):
     global target_h, target_min, target_sec, target_time_id, target_time_text
 
