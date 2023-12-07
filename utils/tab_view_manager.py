@@ -1,13 +1,5 @@
 import customtkinter as ctk
 import tkinter as tk
-from ui_elements.timer_ui import timer_create_label, timer_create_button
-from ui_elements.settings_ui import (
-    settings_create_button,
-    settings_create_checkbox,
-    settings_create_input,
-    settings_create_label,
-)
-from timer.timer_logic import *
 from timer.timer_elements import create_timer_elements
 from settings.settings_elements import create_settings_element
 

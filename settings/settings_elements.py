@@ -1,7 +1,8 @@
 import customtkinter as ctk
 from ui_elements.settings_ui import *
 from timer.target_time_logic import target_time_text
-from timer.break_time_logic import break_time_text
+
+from timer.new_break_time import break_time_text
 from settings.settings_logic import *
 
 

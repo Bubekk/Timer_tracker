@@ -1,5 +1,6 @@
 import json
 from timer.target_time_logic import refresh_target_time_variables
+from timer.new_break_time import refresh_break_time_variables
 
 settings_file_path = "./data/config/config.json"
 
@@ -24,7 +25,8 @@ def read_settings():
         break_time_config = data[0]["break_time"]
         pomodoro_config = data[0]["pomodoro"]
 
-        refresh_target_time_variables()
+        refresh_target_time_variables(target_time_config)
+        refresh_break_time_variables(break_time_config)
 
         return target_time_config, break_time_config, pomodoro_config
 
@@ -56,6 +58,5 @@ def save_settings(time_input, break_input, pomodoro, target_label, break_label):
     break_label.configure(text=new_break_time_config)
 
     # Uses function from target_time_logic to refresh target time variables
-    refresh_target_time_variables()
-
-    print(new_target_time_config)
+    refresh_target_time_variables(data[0]["target_time"])
+    refresh_break_time_variables(data[0]["break_time"])

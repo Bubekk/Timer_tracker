@@ -1,5 +1,7 @@
 from .timer_logic import *
 from .target_time_logic import *
+from .new_break_time import *
+
 from .break_time_logic import *
 from ui_elements.timer_ui import *
 
@@ -12,10 +14,15 @@ def create_timer_elements(parent_frame):
     start_timer_button = timer_create_button(
         parent_frame,
         "start",
-        lambda: start_timer(full_time_label, target_time_label),
+        lambda: start_timer(full_time_label, target_time_label, break_time_label),
         4,
     )
-    stop_timer_button = timer_create_button(parent_frame, "break", timer_button_test, 5)
+    stop_timer_button = timer_create_button(
+        parent_frame,
+        "break",
+        lambda: stop_timer(full_time_label, target_time_label, break_time_label),
+        5,
+    )
     end_session_button = timer_create_button(parent_frame, "End", timer_button_test, 6)
 
     return (
