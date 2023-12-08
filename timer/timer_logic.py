@@ -1,5 +1,6 @@
 from .target_time_logic import target_time_countdown, stop_countdown_target
 from .new_break_time import break_time_countdown, stop_countdown_break
+from sessions.sessions_logic import update_work_time
 
 h, min, sec = 0, 0, 0
 timer_id = None
@@ -46,3 +47,4 @@ def timer(label):
     timer_text = f"{h:02d}:{min:02d}:{sec:02d}"
     timer_id = label.after(1000, lambda: timer(label))
     label.configure(text=timer_text)
+    update_work_time(h, min, sec)

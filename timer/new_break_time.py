@@ -1,6 +1,7 @@
 break_h, break_min, break_sec = 0, 0, 0
 break_time_id = None
 break_time_text = f"{break_h:02d}:{break_min:02d}:{break_sec:02d}"
+quantity_breaks = 0
 
 
 def refresh_break_time_variables(config_time):
@@ -26,7 +27,7 @@ def stop_countdown_break(label):
 
 # Starts counting down from break time
 def break_time_countdown(label):
-    global break_h, break_min, break_sec, break_time_id, break_time_text
+    global break_h, break_min, break_sec, break_time_id, break_time_text, quantity_breaks
 
     if break_sec == 0:
         break_sec = 59
@@ -45,4 +46,5 @@ def break_time_countdown(label):
 
     if break_h == 0 and break_min == 0 and break_sec == 0:
         stop_countdown_break(label)
-        print("Your break is complete!")
+        quantity_breaks += 1
+        print("Your break is complete!", quantity_breaks)

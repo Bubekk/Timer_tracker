@@ -26,7 +26,9 @@ def create_timer_elements(parent_frame):
     end_session_button = timer_create_button(
         parent_frame,
         "End",
-        save_session,
+        lambda: save_session(
+            break_time_config[0], break_time_config[1], break_time_config[2]
+        ),
         6,
     )
 
